@@ -34,6 +34,7 @@ runButton.addEventListener("click", function (event) {
 
     const pageWidth = parseInt(document.getElementById('pageWidth').value);
     const pageHeight = parseInt(document.getElementById('pageHeight').value);
+    const fontSize = document.getElementById("fontSize").value ? parseFloat(document.getElementById("fontSize").value) : 0;
     const color = document.getElementsByClassName("color-switch")[0].checked ? 1 : 0;
     const deviceScale = parseFloat(document.getElementById('deviceScale').value);
 
@@ -49,7 +50,7 @@ runButton.addEventListener("click", function (event) {
             }
 
             // Screenshot
-            screenshot.convertToJpg(sourcePath, outputPath, pageWidth, pageHeight, color, deviceScale);
+            screenshot.convertToJpg(sourcePath, outputPath, pageWidth, pageHeight, fontSize, color, deviceScale);
         });
 });
 

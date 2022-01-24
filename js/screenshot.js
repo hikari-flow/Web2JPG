@@ -6,7 +6,7 @@ const puppeteer = require('puppeteer');
 
 const overlay = require('./overlay.js');
 
-exports.convertToJpg = async (sourcePath, outputPath, pageWidth, pageHeight, color, deviceScale) => {
+exports.convertToJpg = async (sourcePath, outputPath, pageWidth, pageHeight, fontSize, color, deviceScale) => {
     const fileList = fs.readdirSync(sourcePath);
 
     overlay.display('Imaging in Progress.');
@@ -30,6 +30,11 @@ exports.convertToJpg = async (sourcePath, outputPath, pageWidth, pageHeight, col
             await page.evaluate(blackAndWhite);
         }
 
+        // font size
+        if (fontSize != 0) {
+            await page.evaluate(changeFontSize, fontSize);
+        }
+
         // fit all images within viewport
         await page.evaluate(fitImages);
 
@@ -40,7 +45,7 @@ exports.convertToJpg = async (sourcePath, outputPath, pageWidth, pageHeight, col
             await page.evaluate(addWhiteSpace, pageHeight);
         }
 
-        // get the new scrollHeight after adding whitespace
+        // get the new scrollHeight since we added whitespace
         scrollHeight = await page.evaluate(getScrollHeight);
 
         // scrolling screenshots
@@ -81,10 +86,30 @@ exports.convertToJpg = async (sourcePath, outputPath, pageWidth, pageHeight, col
             document.getElementsByTagName('html')[0].style.filter = "grayscale(100%)";
         }
 
-        async function fitImages() {
-            var images = document.getElementsByTagName('img');
+        async function changeFontSize(fontSize) {
+            let elem = document.getElementsByTagName('html');
+            for (let i = 0; i < elem.length; i++) { elem[i].style.fontSize = fontSize + "em"; elem[i].style.lineHeight = "1em"; }
 
-            for (var i = 0; i < images.length; i++) {
+            elem = document.getElementsByTagName('body');
+            for (let i = 0; i < elem.length; i++) { elem[i].style.fontSize = fontSize + "em"; elem[i].style.lineHeight = "1em"; }
+
+            elem = document.getElementsByTagName('div');
+            for (let i = 0; i < elem.length; i++) { elem[i].style.fontSize = fontSize + "em"; elem[i].style.lineHeight = "1em"; }
+
+            elem = document.getElementsByTagName('p');
+            for (let i = 0; i < elem.length; i++) { elem[i].style.fontSize = fontSize + "em"; elem[i].style.lineHeight = "1em"; }
+
+            elem = document.getElementsByTagName('a');
+            for (let i = 0; i < elem.length; i++) { elem[i].style.fontSize = fontSize + "em"; elem[i].style.lineHeight = "1em"; }
+
+            elem = document.getElementsByTagName('span');
+            for (let i = 0; i < elem.length; i++) { elem[i].style.fontSize = fontSize + "em"; elem[i].style.lineHeight = "1em"; }
+        }
+
+        async function fitImages() {
+            const images = document.getElementsByTagName('img');
+
+            for (let i = 0; i < images.length; i++) {
                 images[i].style.maxWidth = "100%";
                 images[i].style.height = "auto";
             }
