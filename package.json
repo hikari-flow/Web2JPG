@@ -1,0 +1,21 @@
+{
+  "name": "web2jpg",
+  "version": "1.0.0",
+  "description": "Screenshots anything that can be opened in Google Chrome.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hikari-flow/web2jpg.git"
+  },
+  "author": "Austin Tran",
+  "license": "MIT",
+  "dependencies": {
+    "puppeteer": "^13.1.1"
+  },
+  "devDependencies": {
+    "electron": "^16.0.7"
+  }
+}
