@@ -26,19 +26,19 @@ exports.convertToJpg = async (sourcePath, outputPath, pageWidth, pageHeight, col
         const page = await browser.newPage();
         await page.goto(path.join('file://', sourcePath, file));
 
-        const pageData = await page.evaluate(getPageData);
+        const scrollHeight = await page.evaluate(getScrollHeight);
+
+        // bw
+        if (color == 0) {
+            await page.evaluate(blackAndWhite);
+        }
 
         // fit all images within viewport
         await page.evaluate(fitImages);
 
         // adds whitespace to bottom of page so last page will get a full scroll
-        if (pageData.scrollHeight > pageHeight) {
-            await page.evaluate(addWhiteSpace);
-        }
-
-        // bw
-        if (color == 0) {
-            await page.evaluate(blackAndWhite);
+        if (scrollHeight > pageHeight) {
+            await page.evaluate(addWhiteSpace, pageHeight);
         }
 
         // scrolling screenshots
@@ -46,7 +46,7 @@ exports.convertToJpg = async (sourcePath, outputPath, pageWidth, pageHeight, col
 
         let imgCtr = 1;
 
-        for (let scrollPosition = 0; scrollPosition < pageData.scrollHeight; scrollPosition += pageHeight) {
+        for (let scrollPosition = 0; scrollPosition < scrollHeight; scrollPosition += pageHeight) {
             const suffix = '_' + String(imgCtr).padStart(6, '0');
             const fileName = path.basename(file, path.extname(file));
             const image = path.join(outputPath, 'IMAGES', fileName + suffix + '.jpg');
@@ -57,11 +57,11 @@ exports.convertToJpg = async (sourcePath, outputPath, pageWidth, pageHeight, col
                 captureBeyondViewport: true
             });
 
-            await page.evaluate(scrollPage);
+            await page.evaluate(scrollPage, pageHeight);
 
             try {
                 if (imgCtr == 1) {
-                    fs.appendFileSync(path.join(outputPath, 'Images.opt'), fileName + ',,' + image + ',Y,,,' + (Math.floor(pageData.scrollHeight / pageHeight) + 1) + '\n');
+                    fs.appendFileSync(path.join(outputPath, 'Images.opt'), fileName + ',,' + image + ',Y,,,' + (Math.floor(scrollHeight / pageHeight) + 1) + '\n');
                 } else {
                     fs.appendFileSync(path.join(outputPath, 'Images.opt'), fileName + suffix + ',,' + image + ',,,,\n');
                 }
@@ -75,10 +75,12 @@ exports.convertToJpg = async (sourcePath, outputPath, pageWidth, pageHeight, col
         await browser.close();
 
         /*** FUNCTIONS ***/
-        async function getPageData() {
-            return {
-                scrollHeight: document.body.scrollHeight
-            };
+        async function getScrollHeight() {
+            return document.body.scrollHeight;
+        }
+
+        async function blackAndWhite() {
+            document.getElementsByTagName('html')[0].style.filter = "grayscale(100%)";
         }
 
         async function fitImages() {
@@ -90,16 +92,12 @@ exports.convertToJpg = async (sourcePath, outputPath, pageWidth, pageHeight, col
             }
         }
 
-        async function addWhiteSpace() {
-            document.getElementsByTagName('html')[0].style.height = ((Math.floor(document.body.scrollHeight / window.innerHeight) + 1) * window.innerHeight).toString() + "px";
+        async function addWhiteSpace(pageHeight) {
+            document.getElementsByTagName('html')[0].style.height = ((Math.floor(document.body.scrollHeight / pageHeight) + 1) * pageHeight).toString() + "px";
         }
 
-        async function blackAndWhite() {
-            document.getElementsByTagName('html')[0].style.filter = "grayscale(100%)";
-        }
-
-        async function scrollPage() {
-            window.scrollBy(0, window.innerHeight);
+        async function scrollPage(pageHeight) {
+            window.scrollBy(0, pageHeight);
 
             return Promise.resolve();
         }
