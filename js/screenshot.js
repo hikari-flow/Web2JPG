@@ -12,8 +12,10 @@ exports.convertToJpg = async (sourcePath, outputPath, pageWidth, pageHeight, fon
     overlay.display('Imaging in Progress.');
 
     for (const file of fileList) {
+
         // launch headless browser with desired user settings
         const browser = await puppeteer.launch({
+            executablePath: "C:/Program Files/Google/Chrome/Application/chrome.exe",
             headless: true,
             defaultViewport: {
                 width: pageWidth,
@@ -88,7 +90,7 @@ exports.convertToJpg = async (sourcePath, outputPath, pageWidth, pageHeight, fon
 
         async function changeFontSize(fontSize) {
             let elem = document.getElementsByTagName('html');
-            for (let i = 0; i < elem.length; i++) { elem[i].style.fontSize = fontSize + "em"; elem[i].style.lineHeight = "1em"; }
+            for (let i = 0; i < elem.length; i++) { elem[i].style.fontSize = "100%"; elem[i].style.lineHeight = "1em"; }
 
             elem = document.getElementsByTagName('body');
             for (let i = 0; i < elem.length; i++) { elem[i].style.fontSize = fontSize + "em"; elem[i].style.lineHeight = "1em"; }
@@ -96,14 +98,11 @@ exports.convertToJpg = async (sourcePath, outputPath, pageWidth, pageHeight, fon
             elem = document.getElementsByTagName('div');
             for (let i = 0; i < elem.length; i++) { elem[i].style.fontSize = fontSize + "em"; elem[i].style.lineHeight = "1em"; }
 
-            elem = document.getElementsByTagName('p');
-            for (let i = 0; i < elem.length; i++) { elem[i].style.fontSize = fontSize + "em"; elem[i].style.lineHeight = "1em"; }
-
-            elem = document.getElementsByTagName('a');
-            for (let i = 0; i < elem.length; i++) { elem[i].style.fontSize = fontSize + "em"; elem[i].style.lineHeight = "1em"; }
-
             elem = document.getElementsByTagName('span');
             for (let i = 0; i < elem.length; i++) { elem[i].style.fontSize = fontSize + "em"; elem[i].style.lineHeight = "1em"; }
+
+            elem = document.getElementsByTagName('img');
+            for (let i = 0; i < elem.length; i++) { elem[i].style.minWidth = fontSize * 6.5 + "em"; }
         }
 
         async function fitImages() {
