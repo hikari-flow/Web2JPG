@@ -22,11 +22,8 @@ exports.convertToJpg = async (sourcePath, outputPath, pageWidth, pageHeight, col
             }
         });
 
-        // open file in new page on browser and retrieve total height of page
         const page = await browser.newPage();
         await page.goto(path.join('file://', sourcePath, file));
-
-        const scrollHeight = await page.evaluate(getScrollHeight);
 
         // bw
         if (color == 0) {
@@ -36,10 +33,15 @@ exports.convertToJpg = async (sourcePath, outputPath, pageWidth, pageHeight, col
         // fit all images within viewport
         await page.evaluate(fitImages);
 
+        let scrollHeight = await page.evaluate(getScrollHeight);
+
         // adds whitespace to bottom of page so last page will get a full scroll
         if (scrollHeight > pageHeight) {
             await page.evaluate(addWhiteSpace, pageHeight);
         }
+
+        // get the new scrollHeight after adding whitespace
+        scrollHeight = await page.evaluate(getScrollHeight);
 
         // scrolling screenshots
         console.log('Imaging ' + file);
@@ -61,7 +63,7 @@ exports.convertToJpg = async (sourcePath, outputPath, pageWidth, pageHeight, col
 
             try {
                 if (imgCtr == 1) {
-                    fs.appendFileSync(path.join(outputPath, 'Images.opt'), fileName + ',,' + image + ',Y,,,' + (Math.floor(scrollHeight / pageHeight) + 1) + '\n');
+                    fs.appendFileSync(path.join(outputPath, 'Images.opt'), fileName + ',,' + image + ',Y,,,' + (Math.floor(scrollHeight / pageHeight)) + '\n');
                 } else {
                     fs.appendFileSync(path.join(outputPath, 'Images.opt'), fileName + suffix + ',,' + image + ',,,,\n');
                 }
@@ -75,10 +77,6 @@ exports.convertToJpg = async (sourcePath, outputPath, pageWidth, pageHeight, col
         await browser.close();
 
         /*** FUNCTIONS ***/
-        async function getScrollHeight() {
-            return document.body.scrollHeight;
-        }
-
         async function blackAndWhite() {
             document.getElementsByTagName('html')[0].style.filter = "grayscale(100%)";
         }
@@ -90,6 +88,10 @@ exports.convertToJpg = async (sourcePath, outputPath, pageWidth, pageHeight, col
                 images[i].style.maxWidth = "100%";
                 images[i].style.height = "auto";
             }
+        }
+
+        async function getScrollHeight() {
+            return document.body.scrollHeight;
         }
 
         async function addWhiteSpace(pageHeight) {
