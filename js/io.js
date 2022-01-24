@@ -58,6 +58,9 @@ optButton.addEventListener("click", function (event) {
 
     const sourcePath = document.getElementById('sourcePath').value;
 
+    if (fs.existsSync(sourcePath)) { }
+    if (fileList.length != 0) { }
+
     if (fs.existsSync(sourcePath)) {
 
         const fileList = fs.readdirSync(sourcePath);
@@ -67,31 +70,28 @@ optButton.addEventListener("click", function (event) {
             const outputPath = document.getElementById('outputPath').value;
 
             if (fs.existsSync(outputPath)) {
-                if (fileList.length != 0) {
 
-                    // Generation of OPT
-                    overlay.display('Generating OPT.');
-                    generateBlankOpt(outputPath);
+                // Generation of OPT
+                overlay.display('Generating OPT.');
+                generateBlankOpt(outputPath);
 
-                    for (const file of fileList) {
-                        const fileName = path.basename(file, path.extname(file));
+                for (const file of fileList) {
+                    const fileName = path.basename(file, path.extname(file));
 
-                        try {
-                            if (fileName.substring(fileName.length - 7, fileName.length) === '_000001') {
-                                fs.appendFileSync(path.join(outputPath, 'Images.opt'), fileName.substring(0, fileName.length - 7) + ',,' + path.join(sourcePath, file) + ',Y,,,\n');
-                            } else {
-                                fs.appendFileSync(path.join(outputPath, 'Images.opt'), fileName + ',,' + path.join(sourcePath, file) + ',,,,\n');
-                            }
-                        } catch (err) {
-                            overlay.display(err);
+                    try {
+                        if (fileName.substring(fileName.length - 7, fileName.length) === '_000001') {
+                            fs.appendFileSync(path.join(outputPath, 'Images.opt'), fileName.substring(0, fileName.length - 7) + ',,' + path.join(sourcePath, file) + ',Y,,,\n');
+                        } else {
+                            fs.appendFileSync(path.join(outputPath, 'Images.opt'), fileName + ',,' + path.join(sourcePath, file) + ',,,,\n');
                         }
+                    } catch (err) {
+                        overlay.display(err);
                     }
-
-                    overlay.clear();
-                    overlay.display('OPT complete.');
-                } else {
-                    overlay.display('There no files in' + sourcePath);
                 }
+
+                overlay.clear();
+                overlay.display('OPT complete.');
+
 
             } else {
                 overlay.display('Output path does not exist.');
