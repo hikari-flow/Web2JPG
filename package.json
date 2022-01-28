@@ -1,5 +1,5 @@
 {
-  "name": "Web2JPG",
+  "name": "web2jpg",
   "version": "1.0.0",
   "description": "Screenshots anything that can be opened in Google Chrome.",
   "main": "main.js",

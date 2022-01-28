@@ -3,6 +3,8 @@
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
 
+const config = require('./js/config.js');
+
 function openWindow() {
     const win = new BrowserWindow({
         width: 480,
@@ -14,6 +16,8 @@ function openWindow() {
     });
 
     win.loadFile(path.resolve(__dirname, 'index.html'));
+
+    config.newConfig();
 
     return win;
 }

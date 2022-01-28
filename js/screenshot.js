@@ -5,8 +5,9 @@ const path = require('path');
 const puppeteer = require('puppeteer');
 
 const overlay = require('./overlay.js');
+const config = require('./config.js');
 
-exports.convertToJpg = async (sourcePath, outputPath, pageWidth, pageHeight, fontSize, color, deviceScale) => {
+exports.convertToJpg = async (sourcePath, outputPath, imagesPath, pageWidth, pageHeight, fontSize, color, deviceScale) => {
     const fileList = fs.readdirSync(sourcePath);
 
     overlay.display('Imaging in Progress.');
@@ -15,7 +16,7 @@ exports.convertToJpg = async (sourcePath, outputPath, pageWidth, pageHeight, fon
 
         // launch headless browser with desired user settings
         const browser = await puppeteer.launch({
-            executablePath: "C:/Program Files/Google/Chrome/Application/chrome.exe",
+            executablePath: config.get('chromeExe'),
             headless: true,
             defaultViewport: {
                 width: pageWidth,
@@ -58,7 +59,7 @@ exports.convertToJpg = async (sourcePath, outputPath, pageWidth, pageHeight, fon
         for (let scrollPosition = 0; scrollPosition < scrollHeight; scrollPosition += pageHeight) {
             const suffix = '_' + String(imgCtr).padStart(6, '0');
             const fileName = path.basename(file, path.extname(file));
-            const image = path.join(outputPath, 'IMAGES', fileName + suffix + '.jpg');
+            const image = path.join(imagesPath, fileName + suffix + '.jpg');
 
             await page.screenshot({
                 path: image,
@@ -76,6 +77,7 @@ exports.convertToJpg = async (sourcePath, outputPath, pageWidth, pageHeight, fon
                 }
             } catch (err) {
                 overlay.display(err);
+                return;
             }
 
             imgCtr++;

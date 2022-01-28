@@ -38,20 +38,30 @@ runButton.addEventListener("click", function (event) {
     const color = document.getElementsByClassName("color-switch")[0].checked ? 1 : 0;
     const deviceScale = parseFloat(document.getElementById('deviceScale').value);
 
+    // Create IMAGES folder
+    const imagesPath = path.join(outputPath, 'IMAGES');
+
+    // remove IMAGES folder if already exists
+    if (fs.existsSync(imagesPath)) {
+        try {
+            fs.rmSync(imagesPath, { recursive: true });
+        } catch (err) {
+            overlay.display(err);
+            return;
+        }
+    }
+
+    try {
+        fs.mkdirSync(imagesPath, true);
+    } catch (err) {
+        overlay.display(err);
+        return;
+    }
+
     generateBlankOpt(outputPath);
 
-    // Creating IMAGES folder
-    fs.mkdir(
-        path.join(outputPath, 'IMAGES'),
-        { recursive: true }, (err) => {
-            if (err) {
-                overlay.display(err);
-                return console.error(err);
-            }
-
-            // Screenshot
-            screenshot.convertToJpg(sourcePath, outputPath, pageWidth, pageHeight, fontSize, color, deviceScale);
-        });
+    // Screenshot
+    screenshot.convertToJpg(sourcePath, outputPath, imagesPath, pageWidth, pageHeight, fontSize, color, deviceScale);
 });
 
 // Generate OPT
@@ -81,20 +91,28 @@ optButton.addEventListener("click", function (event) {
 
     // Generation of OPT
     overlay.display('Generating OPT.');
+
     generateBlankOpt(outputPath);
+
+    let imgCtr = 1;
 
     for (const file of fileList) {
         const fileName = path.basename(file, path.extname(file));
+        const suffix = '_' + String(imgCtr).padStart(6, '0');
 
         try {
             if (fileName.substring(fileName.length - 7, fileName.length) === '_000001') {
+                imgCtr = 1;
                 fs.appendFileSync(path.join(outputPath, 'Images.opt'), fileName.substring(0, fileName.length - 7) + ',,' + path.join(sourcePath, file) + ',Y,,,\n');
             } else {
-                fs.appendFileSync(path.join(outputPath, 'Images.opt'), fileName + ',,' + path.join(sourcePath, file) + ',,,,\n');
+                fs.appendFileSync(path.join(outputPath, 'Images.opt'), fileName.substring(0, fileName.length - 7) + suffix + ',,' + path.join(sourcePath, file) + ',,,,\n');
             }
         } catch (err) {
             overlay.display(err);
+            return;
         }
+
+        imgCtr++;
     }
 
     overlay.clear();
@@ -106,5 +124,6 @@ function generateBlankOpt(outputPath) {
         fs.writeFileSync(path.join(outputPath, 'Images.opt'), '', { encoding: 'utf8', flag: 'w' });
     } catch (err) {
         overlay.display(err);
+        return;
     }
 }
