@@ -7,8 +7,8 @@ const config = require('./js/config.js');
 
 function openWindow() {
     const win = new BrowserWindow({
-        width: 480,
-        height: 720,
+        width: 400,
+        height: 635,
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false
@@ -16,7 +16,7 @@ function openWindow() {
     });
 
     win.loadFile(path.resolve(__dirname, 'index.html'));
-    win.webContents.openDevTools();
+    win.webContents.openDevTools({ mode: 'detach' });
 
     config.newConfig();
 
