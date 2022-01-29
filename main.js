@@ -16,6 +16,7 @@ function openWindow() {
     });
 
     win.loadFile(path.resolve(__dirname, 'index.html'));
+    win.webContents.openDevTools();
 
     config.newConfig();
 

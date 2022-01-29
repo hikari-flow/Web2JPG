@@ -41,16 +41,6 @@ runButton.addEventListener("click", function (event) {
     // Create IMAGES folder
     const imagesPath = path.join(outputPath, 'IMAGES');
 
-    // remove IMAGES folder if already exists
-    if (fs.existsSync(imagesPath)) {
-        try {
-            fs.rmSync(imagesPath, { recursive: true });
-        } catch (err) {
-            overlay.display(err);
-            return;
-        }
-    }
-
     try {
         fs.mkdirSync(imagesPath, true);
     } catch (err) {

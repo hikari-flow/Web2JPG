@@ -64,7 +64,7 @@ exports.convertToJpg = async (sourcePath, outputPath, imagesPath, pageWidth, pag
             await page.screenshot({
                 path: image,
                 quality: 80,
-                captureBeyondViewport: true
+                captureBeyondViewport: false
             });
 
             await page.evaluate(scrollPage, pageHeight);
