@@ -5,6 +5,7 @@ const path = require('path');
 const puppeteer = require('puppeteer');
 const overlay = require('./overlay');
 const config = require('./config');
+const { contextIsolated } = require('process');
 
 exports.convertToJpg = async (sourcePath, outputPath, imagesPath, progressBar) => {
     const outputText = document.getElementById("output-text");
@@ -34,15 +35,20 @@ exports.convertToJpg = async (sourcePath, outputPath, imagesPath, progressBar) =
         defaultViewport: {
             width: pageWidth,
             height: pageHeight,
-            deviceScaleFactor: deviceScale
+            deviceScaleFactor: deviceScale,
+            isMobile: true
         }
     });
 
     progressBar.classList.add('progress-bar-animated');
 
     for (let i = 0; i < fileList.length; i++) {
+        outputText.innerHTML += `<br>(${i + 1}/${fileList.length}) ${fileList[i]}`;
+
         const page = await browser.newPage();
         await page.goto(path.join('file://', sourcePath, fileList[i]));
+
+        await page.evaluate(fitImages);
 
         // bw
         if (color == 0) {
@@ -54,21 +60,7 @@ exports.convertToJpg = async (sourcePath, outputPath, imagesPath, progressBar) =
             await page.evaluate(changeFontSize, fontSize);
         }
 
-        // fit all images and tables within viewport
-        await page.evaluate(fitImages);
-        // await page.evaluate(fitTables);
-
-        let scrollHeight = await page.evaluate(getScrollHeight);
-
-        // if more than 1 page, add whitespace to bottom of page so that last page will get a full scroll
-        if (scrollHeight > pageHeight) {
-            await page.evaluate(addWhiteSpace, pageHeight);
-
-            // get the new scrollHeight since we added whitespace
-            scrollHeight = await page.evaluate(getScrollHeight);
-        }
-
-        outputText.innerHTML += `<br>(${i + 1}/${fileList.length}) ${fileList[i]}`;
+        const scrollHeight = await page.evaluate(getScrollHeight, pageHeight);
 
         // scrolling screenshots
         let imgCtr = 1;
@@ -114,6 +106,15 @@ exports.convertToJpg = async (sourcePath, outputPath, imagesPath, progressBar) =
     progressBar.classList.add('progress-bar-complete');
     progressBar.textContent = 'Done';
 
+    async function fitImages() {
+        const images = document.getElementsByTagName('img');
+
+        for (let i = 0; i < images.length; i++) {
+            images[i].style.maxWidth = "100%";
+            images[i].style.height = "auto";
+        }
+    }
+
     async function blackAndWhite() {
         document.getElementsByTagName('html')[0].style.filter = "grayscale(100%)";
     }
@@ -144,34 +145,16 @@ exports.convertToJpg = async (sourcePath, outputPath, imagesPath, progressBar) =
         }
     }
 
-    async function fitImages() {
-        const images = document.getElementsByTagName('img');
-
-        for (let i = 0; i < images.length; i++) {
-            images[i].style.maxWidth = "100%";
-            images[i].style.height = "auto";
+    async function getScrollHeight(pageHeight) {
+        // If more than 1 page, add whitespace to bottom of page so that last page will get a full scroll
+        if (document.body.scrollHeight > pageHeight) {
+            document.body.style.height = ((Math.floor(document.body.scrollHeight / pageHeight) + 1) * pageHeight).toString() + "px";
         }
-    }
 
-    async function fitTables() {
-        const tables = document.getElementsByTagName('td');
-
-        for (let i = 0; i < tables.length; i++) {
-
-        }
-    }
-
-    async function getScrollHeight() {
         return document.body.scrollHeight;
-    }
-
-    async function addWhiteSpace(pageHeight) {
-        document.getElementsByTagName('html')[0].style.height = ((Math.floor(document.body.scrollHeight / pageHeight) + 1) * pageHeight).toString() + "px";
     }
 
     async function scrollPage(pageHeight) {
         window.scrollBy(0, pageHeight);
-
-        return Promise.resolve();
     }
 }
