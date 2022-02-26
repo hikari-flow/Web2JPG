@@ -1,7 +1,7 @@
 html {
 	height: 100%;
-    background: url(../assets/bg.jpg);
-	background-repeat: no-repeat;
+	background: url(../assets/bg.jpg);
+	background-repeat: repeat-y;
 	background-size: cover;
     font-family: "Lato",Arial,sans-serif;
     font-size: 16px;
@@ -14,22 +14,22 @@ html {
     padding: 0
 }
 
-/*
-#kld:before {
-	position: absolute;
-	left: calc(50% - 150px);
-	top: calc(50% - 150px);
-	z-index: -1;
-	font-family: fontello;
-	font-size: 300px;
-	content: '\e834';
-	color: #000;
-	width: 300px;
-	height: 300px;
-	line-height: 300px;
-	-webkit-font-smoothing: antialiased;
+::-webkit-scrollbar {
+	width: 7px;
+	height: 7px;
 }
-*/
+
+::-webkit-scrollbar-track {
+	background: rgba(255,255,255,.15);
+	border-radius: 5px
+}
+
+::-webkit-scrollbar-thumb {
+	background: #fff; 
+	border-radius: 5px
+} ::-webkit-scrollbar-thumb:hover {
+	background: #008cff; 
+}
 
 body {
     margin: 0
@@ -50,7 +50,7 @@ div {
 }
 
 section {
-    padding: 1em 0 0 0
+    padding: 0.5em 0 0 0
 }
 
 *,
@@ -68,7 +68,7 @@ section {
 	left: 0;
 	right: 0;
 	bottom: 0;
-	background-color: rgba(0,0,0,.5);
+	background-color: rgba(0,0,0,.75);
 	z-index: 100;
 }
   
@@ -95,40 +95,22 @@ section {
 	height: 0px;
 }
 
-.container {
-	width: 100%;
-	margin:0 auto
-} @media (min-width:576px) {
-	.container {
-		max-width: 540px
-	}
-} @media (min-width:768px) {
-	.container {
-		max-width: 720px
-	}
-} @media (min-width:992px) {
-	.container {
-		max-width: 960px
-	}
-} @media (min-width:1200px) {
-	.container {
-		max-width: 1024px
-	}
-}
-
-.row {
-	display: -webkit-box;
-	display: -ms-flexbox;
+.flex-container {
 	display: flex;
-	-ms-flex-wrap: wrap;
+	width: 100%;
+	margin: 0 auto;
 	flex-wrap: wrap;
-	margin: 0 auto
+	list-style: none;
+  	flex-flow: row wrap;
+	align-items: center
 }
 
-.justify-content-center {
-	-webkit-box-pack: center!important;
-	-ms-flex-pack: center!important;
-	justify-content: center!important
+.space-around {
+	justify-content: space-around
+}
+
+#input-form {
+	margin: 1em;
 }
 
 .form-group {
@@ -360,5 +342,69 @@ details[open] summary ~ * {
 }
 
 #run {
-	float: left;
+	float: right
+}
+
+#output-info {
+	display: flex;
+	flex-direction: column;
+	background: rgba(0,0,0,.5);
+	width: 50%;
+    height: 420px;
+	min-width: 420px;
+    border-radius: 5px;
+    transition: .2s;
+    padding: 1em
+}
+
+#output-text {
+	display: flex;
+	height: 22.5em;
+	padding: 0;
+	margin: 0;
+	flex-direction: column-reverse;
+	overflow: auto;
+	list-style-type: none;
+	line-height: 1.5em;
+	white-space: nowrap;
+	transition: 1s
+}
+
+#progress {
+	width: 0%;
+	margin-top: auto;
+    overflow: hidden;
+    font-size: .8em;
+	line-height: 1em;
+    background-color: #e9ecef;
+    border-radius: 0.25rem;
+	transition: 1s ease;
+}
+
+#progress-bar {
+	width: 0%;
+	padding: 0.1em;
+	background-color: #9b0000;
+    color: #fff;
+    text-align: center;
+	text-shadow: 0 0 3px #000;
+    white-space: nowrap;
+    transition: .5s;
+}
+
+.progress-bar-animated {
+	background-image: linear-gradient(135deg,rgba(255,255,255,.15) 25%,transparent 25%,transparent 50%,rgba(255,255,255,.15) 50%,rgba(255,255,255,.15) 75%,transparent 75%,transparent);
+    background-size: 1rem 1rem;
+    animation: move 1s linear infinite
+} @keyframes move {
+	0% {
+	  background-position: 0 0
+	}
+	100% {
+	  background-position: -1rem -1rem
+	}
+}
+
+.progress-bar-complete {
+	background-color:#00e100 !important
 }

@@ -2,24 +2,23 @@
 
 const fs = require('fs');
 const path = require('path');
+const overlay = require('./overlay');
 
-const appPath = path.resolve('.');
-const configPath = path.join(appPath, 'config.json');
-const defaults = {
-    chromeExe: path.normalize("C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe")
-};
+// global vars
+const configPath = path.join(path.resolve('.'), 'config.json');
 
-exports.newConfig = () => {
-    if (!fs.existsSync(configPath)) {
-        try {
-            fs.writeFileSync('config.json', JSON.stringify(defaults, null, '\t'));
-        } catch (err) {
-            alert(err);
-            return;
-        }
+exports.initConfig = function () {
+    const defaults = {
+        chromeExe: path.normalize("C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe")
+    };
+
+    try {
+        fs.writeFileSync('config.json', JSON.stringify(defaults, null, '\t'));
+    } catch (err) {
+        overlay.display(`Error in writing config.json file. Please quit the application:\n\n` + err);
     }
 }
 
-exports.get = (item) => {
+exports.get = function (item) {
     return JSON.parse(fs.readFileSync(configPath, { encoding: 'utf8', flag: 'r' }))[item];
 }
