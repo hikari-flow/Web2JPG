@@ -13,20 +13,19 @@ document.querySelector("#run").addEventListener("click", async function (event) 
 
     input.sourcePath = document.getElementById("sourcePath").value;
 
-    if (fs.readdirSync(input.sourcePath).length == 0) {
-        ui.overlay("Source path is empty.");
-        return;
-    } if (!fs.existsSync(input.sourcePath)) {
+    if (!fs.existsSync(input.sourcePath)) {
         ui.overlay("Source path does not exist.");
+        return;
+    }
+
+    if (fs.readdirSync(input.sourcePath).length == 0) {
+        ui.overlay("There are no natives in Source Path.");
         return;
     }
 
     input.outputPath = document.getElementById("outputPath").value;
 
-    if (fs.readdirSync(input.outputPath).length == 0) {
-        ui.overlay("Output path is empty.");
-        return;
-    } if (!fs.existsSync(input.outputPath)) {
+    if (!fs.existsSync(input.outputPath)) {
         ui.overlay("Output path does not exist.");
         return;
     }
