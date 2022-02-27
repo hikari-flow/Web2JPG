@@ -1,160 +1,154 @@
 "use strict";
 
-const fs = require('fs');
-const path = require('path');
-const puppeteer = require('puppeteer');
-const overlay = require('./overlay');
-const config = require('./config');
-const { contextIsolated } = require('process');
+const fs = require("fs");
+const path = require("path");
+const puppeteer = require("puppeteer");
+const ui = require("./ui");
+const config = require("./config");
 
-exports.convertToJpg = async (sourcePath, outputPath, imagesPath, progressBar) => {
-    const outputText = document.getElementById("output-text");
-    outputText.textContent = 'Initializing... Please wait.';
-
-    const fileList = fs.readdirSync(sourcePath);
-
-    const pageWidth = parseInt(document.getElementById('pageWidth').value);
-    const pageHeight = parseInt(document.getElementById('pageHeight').value);
-    const fontSize = document.getElementById("fontSize").value ? parseFloat(document.getElementById("fontSize").value) : 0;
-    const color = document.getElementsByClassName("color-switch")[0].checked ? 1 : 0;
-    let deviceScale = 1;
-
-    // Set device scale so that longest side will at least be 3300px
-    if (pageWidth < 3300 && pageHeight < 3300) {
-        if (pageWidth > pageHeight) {
-            deviceScale = 3300 / pageWidth;
-        } else {
-            deviceScale = 3300 / pageHeight;
-        }
-    }
+exports.convertToJpg = async function (cutOffs, deviceScale, fileList, input, progressTrckr) {
 
     // Launch headless browser with desired user settings
     const browser = await puppeteer.launch({
-        executablePath: config.get('chromeExe'),
+        executablePath: config.get("chromeExe"),
         headless: true,
         defaultViewport: {
-            width: pageWidth,
-            height: pageHeight,
-            deviceScaleFactor: deviceScale,
-            isMobile: true
+            width: input.pageWidth,
+            height: input.pageHeight,
+            deviceScaleFactor: deviceScale
         }
     });
 
-    progressBar.classList.add('progress-bar-animated');
-
-    for (let i = 0; i < fileList.length; i++) {
-        outputText.innerHTML += `<br>(${i + 1}/${fileList.length}) ${fileList[i]}`;
-
+    // Go through fileList and screenshot, while taking note of cutOffs
+    for (const file of fileList) {
         const page = await browser.newPage();
-        await page.goto(path.join('file://', sourcePath, fileList[i]));
+        await page.goto(path.join("file://", input.sourcePath, file));
+        await page.evaluate(formatContent, input.fontSize, input.color);
 
-        await page.evaluate(fitImages);
+        let largestTable = false;
 
-        // bw
-        if (color == 0) {
-            await page.evaluate(blackAndWhite);
+        // If there are tables, detect for cutoffs
+        if (cutOffs && await page.evaluate(() => document.getElementsByTagName("table").length)) {
+            largestTable = await page.evaluate(getLargestTable, input.pageHeight);
         }
 
-        // font size
-        if (fontSize != 0) {
-            await page.evaluate(changeFontSize, fontSize);
-        }
+        // If there's a cutoff table, add to cutOffs list and do later
+        if (largestTable) {
+            cutOffs[file] = { width: largestTable.width };
+        } else {
+            ui.outputText.add(`<br>(${progressTrckr.complete + 1}/${progressTrckr.total}) ${file}`);
 
-        const scrollHeight = await page.evaluate(getScrollHeight, pageHeight);
+            const pageAttr = await page.evaluate(getPageAttr);
 
-        // scrolling screenshots
-        let imgCtr = 1;
+            let imgCtr = 1;
 
-        for (let scrollPosition = 0; scrollPosition < scrollHeight; scrollPosition += pageHeight) {
-            const suffix = '_' + String(imgCtr).padStart(6, '0');
-            const fileName = path.basename(fileList[i], path.extname(fileList[i]));
-            const image = path.join(imagesPath, fileName + suffix + '.jpg');
+            // Screenshots
+            for (let scrollPosition = 0; scrollPosition < pageAttr.scrollHeight; scrollPosition += pageAttr.winHeight) {
+                const suffix = "_" + String(imgCtr).padStart(6, "0");
+                const fileName = path.basename(file, path.extname(file));
+                const imagePath = path.join(input.imagesPath, fileName + suffix + ".jpg");
 
-            await page.screenshot({
-                path: image,
-                quality: 80,
-                captureBeyondViewport: false
-            });
+                await page.screenshot({
+                    path: imagePath,
+                    quality: 80,
+                    captureBeyondViewport: false
+                });
 
-            await page.evaluate(scrollPage, pageHeight);
+                await page.evaluate(scrollPage);
 
-            try {
-                if (imgCtr == 1) {
-                    fs.appendFileSync(path.join(outputPath, 'Images.opt'), fileName + ',,' + image + ',Y,,,' + (Math.floor(scrollHeight / pageHeight)) + '\n');
-                } else {
-                    fs.appendFileSync(path.join(outputPath, 'Images.opt'), fileName + suffix + ',,' + image + ',,,,\n');
+                // OPT
+                try {
+                    if (imgCtr == 1) {
+                        fs.appendFileSync(path.join(input.outputPath, "Images.opt"), fileName + ",," + imagePath + ",Y,,," + pageAttr.pageCount + "\n");
+                    } else {
+                        fs.appendFileSync(path.join(input.outputPath, "Images.opt"), fileName + suffix + ",," + imagePath + ",,,,\n");
+                    }
+                } catch (err) {
+                    ui.overlay(err);
+                    return;
                 }
-            } catch (err) {
-                overlay.display(err);
-                return;
+
+                imgCtr++;
             }
 
-            imgCtr++;
+            progressTrckr.complete++;
+            ui.progressBar.update(progressTrckr.complete, progressTrckr.total);
         }
 
         await page.close();
-
-        const percentFinished = `${Math.round((i + 1) / fileList.length * 100)}%`;
-        progressBar.textContent = percentFinished;
-        progressBar.style.width = percentFinished;
     }
 
     await browser.close();
 
-    // Done
-    progressBar.classList.remove('progress-bar-animated');
-    progressBar.classList.add('progress-bar-complete');
-    progressBar.textContent = 'Done';
-
-    async function fitImages() {
-        const images = document.getElementsByTagName('img');
-
-        for (let i = 0; i < images.length; i++) {
-            images[i].style.maxWidth = "100%";
-            images[i].style.height = "auto";
-        }
-    }
-
-    async function blackAndWhite() {
-        document.getElementsByTagName('html')[0].style.filter = "grayscale(100%)";
-    }
-
-    async function changeFontSize(fontSize) {
-        const tagNames = ['body', 'div', 'span'];
-
-        // html
-        let elem = document.getElementsByTagName('html');
-        for (let i = 0; i < html.length; i++) {
-            elem[i].style.fontSize = "100%";
-            elem[i].style.lineHeight = "1em";
+    function formatContent(fontSize, color) {
+        // Set max-width of images to viewport width
+        const imgs = document.getElementsByTagName("img");
+        for (const img of imgs) {
+            img.style.maxWidth = "100%";
+            img.style.height = "auto";
         }
 
-        // img
-        elem = document.getElementsByTagName('img');
-        for (let i = 0; i < elem.length; i++) {
-            elem[i].style.minWidth = fontSize * 6.5 + "em";
+        // bw
+        if (color == 0) {
+            document.getElementsByTagName("html")[0].style.filter = "grayscale(100%)";
         }
 
-        for (tagName in tagNames) {
-            let elem = document.getElementsByTagName(tagName);
+        // font size
+        if (fontSize != 0) {
+            const tagNames = ["body", "div", "span"];
 
-            for (let i = 0; i < elem.length; i++) {
-                elem[i].style.fontSize = fontSize + "em";
-                elem[i].style.lineHeight = "1em";
+            for (html of document.getElementsByTagName("html")) {
+                html.style.fontSize = "100%";
+                html.style.lineHeight = "1em";
+            }
+
+            for (img of document.getElementsByTagName("img")) {
+                img.style.minWidth = fontSize * 6.5 + "em";
+            }
+
+            for (const tagName of tagNames) {
+                const elems = document.getElementsByTagName(tagName);
+
+                for (const elem of elems) {
+                    elem.style.fontSize = fontSize + "em";
+                    elem.style.lineHeight = "1em";
+                }
             }
         }
     }
 
-    async function getScrollHeight(pageHeight) {
-        // If more than 1 page, add whitespace to bottom of page so that last page will get a full scroll
-        if (document.body.scrollHeight > pageHeight) {
-            document.body.style.height = ((Math.floor(document.body.scrollHeight / pageHeight) + 1) * pageHeight).toString() + "px";
+    function getLargestTable(pageHeight) {
+        let width = 0;
+
+        for (const table of document.getElementsByTagName("table")) {
+            width = (table.getBoundingClientRect().width > width) ? (Math.ceil(table.getBoundingClientRect().width) + 20) : width;
         }
 
-        return document.body.scrollHeight;
+        if (width <= window.innerWidth) {
+            return false;
+        }
+
+        return { width: width };
     }
 
-    async function scrollPage(pageHeight) {
-        window.scrollBy(0, pageHeight);
+    function getPageAttr() {
+        let scrollHeight = Math.ceil(document.documentElement.scrollHeight / window.innerHeight) * window.innerHeight;
+
+        // If more than 1 page, add whitespace to bottom of page so that last page will get a full scroll
+        if (scrollHeight > window.innerHeight) {
+            document.getElementsByTagName("html")[0].style.height = scrollHeight.toString() + "px";
+            document.body.style.height = scrollHeight.toString() + "px";
+        }
+
+        return {
+            winWidth: window.innerWidth,
+            winHeight: window.innerHeight,
+            scrollHeight: scrollHeight,
+            pageCount: Math.trunc(scrollHeight / window.innerHeight),
+        };
+    }
+
+    function scrollPage() {
+        window.scrollBy(0, window.innerHeight);
     }
 }

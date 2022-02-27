@@ -1,60 +1,119 @@
 "use strict";
 
-const fs = require('fs');
-const path = require('path');
-const overlay = require('./overlay');
-const screenshot = require('./screenshot');
+const fs = require("fs");
+const path = require("path");
+const ui = require("./ui");
+const screenshot = require("./screenshot");
 
 // RUN
-document.querySelector("#run").addEventListener("click", function (event) {
+document.querySelector("#run").addEventListener("click", async function (event) {
     event.preventDefault(); // stop the form from submitting
 
-    const sourcePath = document.getElementById('sourcePath').value;
+    let input = {};
 
-    if (!fs.existsSync(sourcePath)) {
-        overlay.display('Source path does not exist.');
+    input.sourcePath = document.getElementById("sourcePath").value;
+
+    if (fs.readdirSync(input.sourcePath).length == 0) {
+        ui.overlay("Source path is empty.");
+        return;
+    } if (!fs.existsSync(input.sourcePath)) {
+        ui.overlay("Source path does not exist.");
         return;
     }
 
-    if (fs.readdirSync(sourcePath).length == 0) {
-        overlay.display('Source path is empty.');
+    input.outputPath = document.getElementById("outputPath").value;
+
+    if (fs.readdirSync(input.outputPath).length == 0) {
+        ui.overlay("Output path is empty.");
+        return;
+    } if (!fs.existsSync(input.outputPath)) {
+        ui.overlay("Output path does not exist.");
         return;
     }
 
-    const outputPath = document.getElementById('outputPath').value;
+    input.imagesPath = path.join(input.outputPath, "IMAGES");
 
-    if (!fs.existsSync(outputPath)) {
-        overlay.display('Output path does not exist.');
-        return;
-    }
-
-    // Create IMAGES folder
-    const imagesPath = path.join(outputPath, 'IMAGES');
-
-    if (!fs.existsSync(imagesPath)) {
+    // Create IMAGES folder if doesn't exist
+    if (!fs.existsSync(input.imagesPath)) {
         try {
-            fs.mkdirSync(imagesPath, true);
+            fs.mkdirSync(input.imagesPath, true);
         } catch (err) {
-            overlay.display(err);
+            ui.overlay(err);
             return;
         }
     }
 
     // Create OPT
     try {
-        fs.writeFileSync(path.join(outputPath, 'Images.opt'), '', { encoding: 'utf8', flag: 'w' });
+        fs.writeFileSync(path.join(input.outputPath, "Images.opt"), "", { encoding: "utf8", flag: "w" });
     } catch (err) {
-        overlay.display(err);
+        ui.overlay(err);
         return;
     }
 
-    // Initialize progress bar
-    const progressBar = document.getElementById("progress-bar");
-    progressBar.classList.remove('progress-bar-complete');
-    progressBar.style.width = '0%';
-    progressBar.textContent = '0%';
-    document.getElementById("progress").style.width = '100%';
+    // Initialize UI
+    ui.progressBar.init();
+    ui.outputText.init();
+
+    // Retrieve the rest of user input
+    const fileList = fs.readdirSync(input.sourcePath);
+    input.pageWidth = parseInt(document.getElementById("pageWidth").value);
+    input.pageHeight = parseInt(document.getElementById("pageHeight").value);
+    input.fontSize = document.getElementById("fontSize").value ? parseFloat(document.getElementById("fontSize").value) : 0;
+    input.color = document.getElementsByClassName("color-switch")[0].checked ? 1 : 0;
+
+    let cutOffs = {};
+    let deviceScale = calcDevScale(input.pageWidth, input.pageHeight);
+    let progressTrckr = { complete: 0, total: fileList.length };
 
     // Screenshot
-    screenshot.convertToJpg(sourcePath, outputPath, imagesPath, progressBar);
+    await screenshot.convertToJpg(cutOffs, deviceScale, fileList, input, progressTrckr);
+
+    // Cut-offs
+    if (Object.keys(cutOffs).length) {
+        try {
+            fs.writeFileSync(path.join(input.outputPath, "cutOffs.txt"), "", { encoding: "utf8", flag: "w" });
+        } catch (err) {
+            ui.overlay(err);
+            return;
+        }
+
+        for (const file in cutOffs) {
+            // cutOffs.txt
+            try {
+                fs.appendFileSync(path.join(input.outputPath, "cutOffs.txt"), file + "\n");
+            } catch (err) {
+                ui.overlay(err);
+                return;
+            }
+
+            deviceScale = calcDevScale(cutOffs[file].width, input.pageHeight);
+            input.pageWidth = cutOffs[file].width;
+
+            await screenshot.convertToJpg(false, deviceScale, [file], input, progressTrckr);
+        }
+    }
+
+    // Done
+    if (progressTrckr.complete != progressTrckr.total) {
+        ui.overlay("ERROR: Unable to finish.\n" + progressTrckr);
+        return;
+    }
+
+    ui.progressBar.complete();
 });
+
+function calcDevScale(w, h) {
+    let deviceScale = 1;
+
+    // Set device scale so that longest side will at least be 3300px
+    if (w < 3300 && h < 3300) {
+        if (w > h) {
+            deviceScale = 3300 / w;
+        } else {
+            deviceScale = 3300 / h;
+        }
+    }
+
+    return deviceScale;
+}
