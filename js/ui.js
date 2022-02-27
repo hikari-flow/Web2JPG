@@ -11,7 +11,7 @@ exports.progressBar = {
     },
     update: function (completed, total) {
         const progressBar = document.getElementById("progress-bar");
-        const percentFinished = `${Math.round((completed / total) * 100)}%`;
+        const percentFinished = `${Math.ceil((completed / total) * 100)}%`;
         progressBar.textContent = percentFinished;
         progressBar.style.width = percentFinished;
     },
