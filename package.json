@@ -1,6 +1,6 @@
 {
   "name": "web2jpg",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Screenshots anything that can be opened in Google Chrome.",
   "main": "main.js",
   "scripts": {
