@@ -29,7 +29,7 @@ exports.convertToJpg = async function (cutOffs, deviceScale, fileList, input, pr
 
         // If there are tables, detect for cutoffs
         if (cutOffs && await page.evaluate(() => document.getElementsByTagName("table").length)) {
-            largestTable = await page.evaluate(getLargestTable, input.pageHeight);
+            largestTable = await page.evaluate(getLargestTable);
         }
 
         // If there's a cutoff table, add to cutOffs list and do later
@@ -117,16 +117,18 @@ exports.convertToJpg = async function (cutOffs, deviceScale, fileList, input, pr
         }
     }
 
-    function getLargestTable(pageHeight) {
+    function getLargestTable() {
         let width = 0;
 
         for (const table of document.getElementsByTagName("table")) {
-            width = (table.getBoundingClientRect().width > width) ? (Math.ceil(table.getBoundingClientRect().width) + 20) : width;
+            width = (table.getBoundingClientRect().width > width) ? Math.ceil(table.getBoundingClientRect().width) : width;
         }
 
         if (width <= window.innerWidth) {
             return false;
         }
+
+        width += 20; // add some whitespace
 
         return { width: width };
     }
