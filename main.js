@@ -19,7 +19,6 @@ app.on("ready", function () {
     });
 
     win.loadFile(path.resolve(__dirname, "index.html"));
-    //win.webContents.openDevTools({ mode: "detach" });
 
     if (!fs.existsSync(configPath)) {
         config.initConfig();
